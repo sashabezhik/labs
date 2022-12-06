@@ -1,0 +1,76 @@
+﻿@page "/addinfo"
+@using lab7.Shared.Models
+@inject HttpClient httpClient
+
+<h1>Add new information about book</h1>
+
+@if(_books != null && _tickets != null){
+<EditForm Model="_infoBook" OnValidSubmit="AddInfo" >	
+	<label id="book">Book</label>
+	<InputSelect @bind-Value="_infoBook.BookID" id="book" >
+		<option value="%">Choose book</option>
+		@foreach(var book in _books)
+		{
+			<option value="@book.ID">@book.Name</option>
+		}
+	</InputSelect>
+	<br/>
+	<label for="ticket">Ticket</label>
+	<InputSelect @bind-Value="_infoBook.TicketID" id="ticket" >
+		<option value="%">Choose ticket</option>
+		@foreach(var ticket in _tickets)
+		{
+			<option value="@ticket.ID">@ticket.ID</option>
+		}
+	
+	</InputSelect>
+	<br/>
+	<label>Date take book</label>
+	<InputDate @bind-Value="_infoBook.DateTakeBook" />
+	<br/>
+	<label>Date return book</label>
+	<InputDate @bind-Value="_infoBook.DateReturnBook" />
+	<br/>
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	<button type="submit">Add new information about book</button>
+</EditForm>
+}
+else
+{
+	<h1>No books or tickets</h1>
+}
+	<button><a href="/infobooks">View all information about books</a></button>
+
+@code {
+	[Inject] NavigationManager navigationManager { get; set; } = null!;
+
+	private InfoBook _infoBook = new InfoBook();
+	private List<Ticket>? _tickets = null;
+	private List<Book>? _books = null;
+	private Ticket? ticket = null;
+	private Book? book = null;
+	private Reader? reader = null;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_tickets = await httpClient.GetFromJsonAsync<List<Ticket>>("api/Ticket/");
+		_books = await httpClient.GetFromJsonAsync<List<Book>>("api/Book/");
+	}
+
+	private async Task AddInfo()
+	{
+		ticket = await httpClient.GetFromJsonAsync<Ticket>($"api/Ticket/{_infoBook.TicketID}");
+		book = await httpClient.GetFromJsonAsync<Book>($"api/Book/{_infoBook.BookID}");
+		reader = await httpClient.GetFromJsonAsync<Reader>($"api/Reader/{ticket.ReaderID}");
+		if(ticket != null && book != null && reader != null)
+		{
+			_infoBook.Ticket = ticket;
+			_infoBook.Book = book;
+			_infoBook.Ticket.Reader = reader;
+			await httpClient.PostAsJsonAsync<InfoBook>("api/InfoBook/", _infoBook);
+		}
+		navigationManager.NavigateTo("/infobooks");
+	} 
+
+}
